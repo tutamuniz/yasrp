@@ -1,0 +1,13 @@
+{
+    "bind_ip":"127.0.0.1",
+    "bind_port":"8080",
+    "cache_dir":"./cache",
+    "cache_max_obj_size":1024,
+    "debug":false,
+    "locations": [
+        {
+            "path":"/home",
+            "target":"http://www.tjrn.jus.br/"
+        }
+    ]
+}
