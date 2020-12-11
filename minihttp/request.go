@@ -20,6 +20,8 @@ type Request struct {
 	Stream  *bufio.Reader
 }
 
+//func NewRequest(method, )
+
 // ParseRequest RFC7230
 func ParseRequest(r *bufio.Reader) (*Request, error) {
 	log.Printf("Parsing request\n")
@@ -32,6 +34,9 @@ func ParseRequest(r *bufio.Reader) (*Request, error) {
 	fields := strings.Split(string(firstLine), " ")
 	req.Method, req.URI, req.Proto = fields[0], fields[1], fields[2] // Check Valid method
 
+	if !isValidMethod(req.Method) {
+		return nil, ErrNotImplementedMethod
+	}
 	fields = strings.Split(req.Proto, "/")
 	req.Proto, req.Version = fields[0], fields[1]
 
