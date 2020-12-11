@@ -1,66 +1,26 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
-	"net"
+	"flag"
+	"log"
 
-	"github.com/tutamuniz/yasrp/minihttp"
+	"github.com/tutamuniz/yasrp/minihttp/reverseproxy"
+	"github.com/tutamuniz/yasrp/miniutils/config"
 )
 
 func main() {
-	fmt.Println("Starting...")
-	Listener("127.0.0.1:8080")
-}
+	configFile := flag.String("config", "config.json", "Configuration File.(JSON format)")
+	flag.Parse()
 
-func Listener(fulladdr string) {
-	laddr, err := net.ResolveTCPAddr("tcp", fulladdr)
+	config, err := config.ParseConfigFromFile(*configFile)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Error parsing config file: %s", err.Error())
 	}
-	listener, err := net.ListenTCP("tcp", laddr)
+
+	rp, err := reverseproxy.NewReverseProxyFromConfig(*config)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 
-	for {
-		conn, err := listener.AcceptTCP()
-		if err != nil {
-			panic(err)
-		}
-		go ConnHandler(conn)
-	}
-}
-
-// ADD X-FORWARD-FOR
-func ConnHandler(conn *net.TCPConn) {
-	defer conn.Close()
-	//  Work with conn.SetReadDeadline(time.Now().Add(time.Second * 2))
-	fmt.Printf("Client: %s \n", conn.RemoteAddr().String())
-	reader := bufio.NewReader(conn)
-
-	req, _ := minihttp.ParseRequest(reader)
-
-	fmt.Println(req)
-
-	res, _ := getRemote(req, "www.tjrn.jus.br:80")
-	wr := bufio.NewWriter(conn)
-	_, _ = wr.Write(res)
-	wr.Flush()
-}
-
-func getRemote(r *minihttp.Request, addr string) ([]byte, error) {
-
-	client, err := net.Dial("tcp", addr)
-	if err != nil {
-		panic(err)
-	}
-
-	r.Headers["Host"] = "www.tjrn.jus.br"
-
-	client.Write(r.ToBytes())
-
-	reader := bufio.NewReader(client)
-	resp, _ := minihttp.ParseResponse(reader)
-	return resp.ToBytes(), nil
+	rp.Listen()
 }

@@ -16,6 +16,7 @@ type Response struct {
 	Version    string
 	Headers    Header
 	Body       []byte
+	Stream     *bufio.Reader
 }
 
 // ParseResponse RFC7230
@@ -52,6 +53,14 @@ func ParseResponse(r *bufio.Reader) (*Response, error) {
 
 	}
 
+	if tenc, ok := resp.Headers["Transfer-Encoding"]; ok && tenc == "chunked" {
+		// var vf bytes.Buffer
+		// wr := gzip.NewWriter(&vf)
+
+		// wr.Write([]byte("5\r\nHello\r\n0\r\n\r\n"))
+		// wr.Close()
+		resp.Body = []byte("5\r\nHello\r\n0\r\n\r\n")
+	}
 	if clen, ok := resp.Headers["Content-Length"]; ok {
 		var bodyBuff bytes.Buffer
 		tmp := make([]byte, 1024)

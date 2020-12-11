@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// TODO - Imrove tests
+// TODO - Improve tests
 func TestParseRequest(t *testing.T) {
 	testCases := []struct {
 		desc     string

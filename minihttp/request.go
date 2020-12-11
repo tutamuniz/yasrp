@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"strconv"
 	"strings"
 )
@@ -16,11 +17,13 @@ type Request struct {
 	Version string
 	Headers Header
 	Body    []byte
+	Stream  *bufio.Reader
 }
 
 // ParseRequest RFC7230
 func ParseRequest(r *bufio.Reader) (*Request, error) {
-	req := &Request{}
+	log.Printf("Parsing request\n")
+	req := &Request{Stream: r}
 	firstLine, _, err := r.ReadLine()
 	if err != nil {
 		return nil, err
