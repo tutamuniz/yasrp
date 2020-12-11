@@ -8,7 +8,9 @@ import (
 	"net/url"
 	"path"
 
+	"github.com/tutamuniz/yasrp/cacheengine"
 	"github.com/tutamuniz/yasrp/minihttp"
+	"github.com/tutamuniz/yasrp/minihttp/cache"
 	"github.com/tutamuniz/yasrp/minihttp/reverseproxy/configtypes"
 	"github.com/tutamuniz/yasrp/miniutils/config"
 )
@@ -16,25 +18,37 @@ import (
 type LocationMap map[string]configtypes.Location
 
 type ReverseProxy struct {
-	BindIP    string
-	BindPort  uint16
-	Locations LocationMap
+	BindIP      string
+	BindPort    uint16
+	EnableCache bool
+	CacheEngine cache.Cache
+	Locations   LocationMap
 }
 
 func NewReverseProxy(BindIP string, BindPort uint16) (*ReverseProxy, error) {
 	if net.ParseIP(BindIP) == nil {
 		return nil, fmt.Errorf("Invalid IP Address:%s", BindIP)
 	}
-	revp := &ReverseProxy{BindIP: BindIP, BindPort: BindPort, Locations: make(LocationMap)}
+	revp := &ReverseProxy{BindIP: BindIP, BindPort: BindPort, Locations: make(LocationMap), EnableCache: false}
 
 	return revp, nil
 }
 
 func NewReverseProxyFromConfig(cfg config.Config) (*ReverseProxy, error) {
 	rp, err := NewReverseProxy(cfg.BindIP, cfg.BindPort)
+
 	if err != nil {
 		return nil, err
 	}
+
+	err = rp.SetCacheEngine(cfg.CacheEngine)
+
+	if err != nil {
+		return nil, err
+	}
+
+	rp.SetCacheStatus(cfg.EnableCache)
+
 	for _, loc := range cfg.Locations {
 		if err = rp.AddLocation(loc); err != nil {
 			return nil, err
@@ -44,7 +58,29 @@ func NewReverseProxyFromConfig(cfg config.Config) (*ReverseProxy, error) {
 	return rp, nil
 }
 
+func (rp *ReverseProxy) SetCacheStatus(enable bool) error {
+	if rp.CacheEngine == nil {
+		return fmt.Errorf("CacheEngine not defined")
+	}
+
+	rp.EnableCache = enable
+
+	return nil
+}
+
+func (rp *ReverseProxy) SetCacheEngine(engine string) error {
+	eng, err := cacheengine.NewCacheEngine(engine)
+	if err != nil {
+		return err
+	}
+
+	rp.CacheEngine = *eng
+	return nil
+}
+
 func (rp *ReverseProxy) Listen() {
+
+	log.Printf("Starting YASRP...\n")
 
 	bindAddr := fmt.Sprintf("%s:%d", rp.BindIP, rp.BindPort)
 
@@ -57,9 +93,12 @@ func (rp *ReverseProxy) Listen() {
 	if err != nil {
 		log.Fatalf("Listen(): %s", err.Error())
 	}
-
-	log.Printf("Starting YASRP...\n")
 	log.Printf("Listening on %s\n", bindAddr)
+
+	if rp.EnableCache {
+		go rp.CacheEngine.StartEngine()
+	}
+
 	log.Print("List of Locations:\n")
 	for _, loc := range rp.Locations {
 		log.Printf("\t%s => %s \n", loc.Path, loc.Target)

@@ -12,9 +12,11 @@ import (
 
 // Config information from json file
 type Config struct {
-	BindIP    string `json:"bind_ip"`
-	BindPort  uint16 `json:"bind_port"`
-	Locations []configtypes.Location
+	BindIP      string                 `json:"bind_ip"`
+	BindPort    uint16                 `json:"bind_port"`
+	EnableCache bool                   `json:"enable_cache"`
+	Locations   []configtypes.Location `json:"locations"`
+	CacheEngine string                 `json:"cache_engine"`
 }
 
 // ParseConfig parses the config data

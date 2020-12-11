@@ -61,6 +61,7 @@ func ParseResponse(r *bufio.Reader) (*Response, error) {
 		// wr.Close()
 		resp.Body = []byte("5\r\nHello\r\n0\r\n\r\n")
 	}
+
 	if clen, ok := resp.Headers["Content-Length"]; ok {
 		var bodyBuff bytes.Buffer
 		tmp := make([]byte, 1024)
