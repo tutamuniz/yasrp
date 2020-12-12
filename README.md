@@ -13,10 +13,10 @@ Recfactory to create some useful stuffs like config files, reorganize the main w
 
 - v0.2.1
 Created the CacheEngine model to allow many cache implementations like memory, filesystem, redis and etc.
- - Memory Cache implemented and working.
- - Dummy Cache implemented. This Cache Engine, does nothing. Work as example.
+    - Memory Cache implemented and working.
+    - Dummy Cache implemented. This Cache Engine, does nothing. Work as example.
 
-Known issues:
+#### Known issues:
 - Doesn't work(yet) with SSL/TLS targets;
 - Can't handle chunked body;
 - Doesn't have any timeout(Read/Write/Connect);
