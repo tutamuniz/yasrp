@@ -12,9 +12,11 @@ import (
 
 // Config information from json file
 type Config struct {
-	BindIP    string `json:"bind_ip"`
-	BindPort  uint16 `json:"bind_port"`
-	Locations []configtypes.Location
+	BindIP      string                 `json:"bind_ip"`
+	BindPort    uint16                 `json:"bind_port"`
+	EnableCache bool                   `json:"enable_cache"`
+	Locations   []configtypes.Location `json:"locations"`
+	CacheEngine string                 `json:"cache_engine"`
 }
 
 // ParseConfig parses the config data
@@ -33,7 +35,7 @@ func ParseConfig(reader io.Reader) (*Config, error) {
 		return nil, fmt.Errorf("ParseConfig(): %s", err.Error())
 	}
 
-	return config, nil
+	return config, configValidations()
 }
 
 // ParseConfigFromFile parse the config data using a file
@@ -49,4 +51,9 @@ func ParseConfigFromFile(filename string) (*Config, error) {
 		return nil, fmt.Errorf("Error parsing config file.:%s", err.Error())
 	}
 	return config, nil
+}
+
+func configValidations() error {
+	// Check valid CacheEngine, BindIP, etc.
+	return nil
 }

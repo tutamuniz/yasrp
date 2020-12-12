@@ -20,7 +20,8 @@ func TestParseConfig(t *testing.T) {
 			{				
 				"bind_ip":"127.0.0.1",
 				"bind_port":8080,
-				"debug":false,
+				"enable_cache":false,
+				"cache_engine": "dummy",
 				"locations": [
 					{
 						"path":"/home",
@@ -35,8 +36,10 @@ func TestParseConfig(t *testing.T) {
 			}
 			`,
 			expected: Config{
-				BindIP:   "127.0.0.1",
-				BindPort: 8080,
+				BindIP:      "127.0.0.1",
+				BindPort:    8080,
+				EnableCache: false,
+				CacheEngine: "dummy",
 				Locations: []configtypes.Location{
 
 					{
@@ -69,6 +72,14 @@ func TestParseConfig(t *testing.T) {
 			}
 			if len(config.Locations) != len(tC.expected.Locations) {
 				t.Errorf("Error parsing Locations expected %d got %d", len(config.Locations), len(tC.expected.Locations))
+			}
+
+			if config.EnableCache != tC.expected.EnableCache {
+				t.Errorf("Error parsing EnableCache expected %v got %v", config.EnableCache, tC.expected.EnableCache)
+			}
+
+			if config.CacheEngine != tC.expected.CacheEngine {
+				t.Errorf("Error parsing EnableCache expected %s got %s", config.CacheEngine, tC.expected.CacheEngine)
 			}
 
 			if config.Locations[0].Path != tC.expected.Locations[0].Path {
