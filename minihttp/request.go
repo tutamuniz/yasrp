@@ -17,7 +17,6 @@ type Request struct {
 	Version string
 	Headers Header
 	Body    []byte
-	Stream  *bufio.Reader
 }
 
 //func NewRequest(method, )
@@ -25,7 +24,7 @@ type Request struct {
 // ParseRequest RFC7230
 func ParseRequest(r *bufio.Reader) (*Request, error) {
 	log.Printf("Parsing request\n")
-	req := &Request{Stream: r}
+	req := &Request{}
 	firstLine, _, err := r.ReadLine()
 	if err != nil {
 		return nil, err

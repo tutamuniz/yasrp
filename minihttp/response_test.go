@@ -8,6 +8,23 @@ import (
 
 // TODO - Improve tests
 
+var header Header = Header{"Host": "www.google.com"}
+
+func TestNewResponse(t *testing.T) {
+	r, err := NewResponse(404, header, []byte("Hello World!"))
+	if err != nil {
+		t.Errorf("%s", err.Error())
+	}
+
+	if r.Headers["Host"] != "www.google.com" {
+		t.Error("Header error")
+	}
+
+	if string(r.Body) != "Hello World!" {
+		t.Error("Body error")
+	}
+
+}
 func TestParseResponse(t *testing.T) {
 	testCases := []struct {
 		desc     string
@@ -17,7 +34,7 @@ func TestParseResponse(t *testing.T) {
 		{
 			desc:     "Simple Response",
 			httpdata: "HTTP/1.1 200 OK\r\nHost: localhost:8080\r\nContent-Length:10\r\nContent-type: text/html\r\n\r\nABCDEFGHIJ",
-			expected: Response{Proto: "HTTP", Version: "1.1", StatusCode: 200, StatusText: "OK", Body: []byte("ABCDEFGHIJ")},
+			expected: Response{Proto: "HTTP", Version: "1.1", Status: 200, StatusText: "OK", Body: []byte("ABCDEFGHIJ")},
 		},
 	}
 	for _, tC := range testCases {
@@ -28,7 +45,7 @@ func TestParseResponse(t *testing.T) {
 				t.Errorf("%s", err.Error())
 			}
 
-			if res.StatusCode != tC.expected.StatusCode ||
+			if res.Status != tC.expected.Status ||
 				res.Proto != tC.expected.Proto ||
 				res.Version != tC.expected.Version ||
 				res.StatusText != tC.expected.StatusText {

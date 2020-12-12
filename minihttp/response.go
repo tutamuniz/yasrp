@@ -10,13 +10,33 @@ import (
 )
 
 type Response struct {
-	StatusCode int
+	Status     int
 	StatusText string
 	Proto      string
 	Version    string
 	Headers    Header
 	Body       []byte
-	Stream     *bufio.Reader
+}
+
+func NewResponse(status int, header Header, body []byte) (*Response, error) {
+
+	text := SupportedStatusCode.GetText(status)
+	if text == "" {
+		return nil, fmt.Errorf("Invalid Status code")
+	}
+
+	resp := &Response{
+		Status:     status,
+		StatusText: text,
+		Proto:      DefaultProtocol,
+		Version:    DefaultVersion,
+		Headers:    header,
+		Body:       body,
+	}
+
+	resp.SetContentType("text/html")
+
+	return resp, nil
 }
 
 // ParseResponse RFC7230
@@ -31,7 +51,7 @@ func ParseResponse(r *bufio.Reader) (*Response, error) {
 	fields := strings.Split(string(firstLine), " ")
 
 	resp.Proto = fields[0]
-	resp.StatusCode, _ = strconv.Atoi(fields[1]) // Check error
+	resp.Status, _ = strconv.Atoi(fields[1]) // Check error
 	resp.StatusText = fields[2]
 
 	fields = strings.Split(resp.Proto, "/")
@@ -92,12 +112,16 @@ func ParseResponse(r *bufio.Reader) (*Response, error) {
 	return resp, nil
 }
 
+func (r *Response) SetContentType(content string) {
+	r.Headers["Content-Type"] = content
+}
+
 func (r Response) ToBytes() []byte {
 	var outRes bytes.Buffer
 
 	outRes.WriteString(fmt.Sprintf("%s/%s %d %s\r\n", r.Proto,
 		r.Version,
-		r.StatusCode,
+		r.Status,
 		r.StatusText))
 	for key, value := range r.Headers {
 		l := fmt.Sprintf("%s: %s\r\n", key, value)

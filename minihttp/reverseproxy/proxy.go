@@ -2,11 +2,12 @@ package reverseproxy
 
 import (
 	"bufio"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net"
 	"net/url"
-	"path"
+	"strings"
 
 	"github.com/tutamuniz/yasrp/cacheengine"
 	"github.com/tutamuniz/yasrp/minihttp"
@@ -158,49 +159,95 @@ func (rp *ReverseProxy) ConnectionHandler(conn *net.TCPConn) {
 
 	req, err := minihttp.ParseRequest(reader)
 
+	log.Printf("Request %s from %s\n", req.URI, conn.RemoteAddr().String())
+
 	if err != nil {
 		log.Printf("%s\n", err.Error())
 		return
 	}
-	dir, _ := path.Split(req.URI)
+
+	//	dir, _ := path.Split(req.URI)
 
 	//rw := bufio.NewReadWriter(reader, writer)
-	if loc, ok := rp.Locations[dir]; ok {
 
-		writer := bufio.NewWriter(conn)
-		resp, err := processLocation(req, loc)
-		if err != nil {
-			log.Printf("Error processing location %s", dir)
-			return
-		}
-		_, _ = writer.Write(resp)
-		writer.Flush()
+	writer := bufio.NewWriter(conn)
+
+	resp, err := rp.processLocation(req)
+	if err != nil {
+		log.Printf("Error processing location %s: %s", req.URI, err.Error())
 	}
+	_, _ = writer.Write(resp)
+	writer.Flush()
 
 }
 
-func processLocation(r *minihttp.Request, loc configtypes.Location) ([]byte, error) {
+func (rp *ReverseProxy) matchLocation(reqPath string) (string, *configtypes.Location) {
+	for p, loc := range rp.Locations {
+		if strings.HasPrefix(reqPath, p) {
+			target, _ := url.Parse(loc.Target)
+			newpath := strings.Replace(reqPath, loc.Path, target.Path, 1)
+			return newpath, &loc
+		}
+	}
+	return "", nil
+}
 
-	log.Printf("Processing location %s\n", loc.Path)
+// Process proxy request based on location mapping
+func (rp *ReverseProxy) processLocation(r *minihttp.Request) ([]byte, error) {
+	var hostname, port, scheme string
+
+	urlPath := r.URI
+
+	log.Printf("Processing location %s\n", urlPath)
+
+	if rp.EnableCache {
+		if rp.CacheEngine.InCache(urlPath) {
+			e, err := rp.CacheEngine.Get(urlPath)
+			if err != nil {
+				log.Printf("Cache Error: %s\n", err.Error())
+			} else {
+				log.Printf("Cache HIT for %s\n", urlPath)
+				return e.Resp.ToBytes(), nil
+			}
+		}
+		log.Printf("Cache MISS for %s\n", urlPath)
+	}
+
+	newpath, loc := rp.matchLocation(r.URI)
+
+	if newpath == "" {
+		message := fmt.Sprintf("Resource <strong>%s</strong> not found.", r.URI)
+		notfound, _ := minihttp.NewResponse(404, r.Headers, []byte(message))
+
+		return notfound.ToBytes(), fmt.Errorf("Match Not found")
+	}
+
+	// overwrite the requested path with target's path.
+	r.URI = newpath
 
 	u, _ := url.Parse(loc.Target)
 
-	hostname := u.Hostname()
-	port := "80" // Remove magic numbers
+	hostname = u.Hostname()
+	port = minihttp.DefaultHTTPPort
+
+	if u.Scheme != "" {
+		scheme = u.Scheme
+	}
 
 	if u.Port() != "" {
 		port = u.Port()
 	}
 
-	log.Printf("Connection on target %s:%s\n", hostname, port)
+	log.Printf("Connecting target %s:%s\n", hostname, port)
 
-	client, err := net.Dial("tcp", hostname+":"+port)
+	client, err := connectBackend(scheme, hostname, port)
+
 	if err != nil {
 		return nil, fmt.Errorf("%s", err.Error())
 	}
 
+	// Set the target hostname
 	r.Headers["Host"] = u.Hostname()
-	r.URI = u.Path
 
 	_, err = client.Write(r.ToBytes())
 
@@ -215,5 +262,33 @@ func processLocation(r *minihttp.Request, loc configtypes.Location) ([]byte, err
 		return nil, fmt.Errorf("%s", err.Error())
 	}
 
+	// Little bit confuse code with urlPath and r.URI. Solve it later
+
+	if rp.EnableCache {
+		if !rp.CacheEngine.InCache(urlPath) {
+			log.Printf("Cache creating entry for %s\n", urlPath)
+			rp.CacheEngine.Put(urlPath, cache.MakeCacheEntry(r, resp))
+		}
+	}
 	return resp.ToBytes(), nil
+}
+
+// abstraction for backend connections
+func connectBackend(scheme, host, port string) (net.Conn, error) {
+	var conn net.Conn
+	var err error
+
+	if strings.ToLower(scheme) == "https" {
+		config := tls.Config{InsecureSkipVerify: true}
+		conn, err = tls.Dial("tcp", host+":"+port, &config)
+	} else {
+		conn, err = net.Dial("tcp", host+":"+port)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("%s", err.Error())
+	}
+
+	return conn, nil
+
 }

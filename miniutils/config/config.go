@@ -35,7 +35,7 @@ func ParseConfig(reader io.Reader) (*Config, error) {
 		return nil, fmt.Errorf("ParseConfig(): %s", err.Error())
 	}
 
-	return config, nil
+	return config, configValidations()
 }
 
 // ParseConfigFromFile parse the config data using a file
@@ -51,4 +51,9 @@ func ParseConfigFromFile(filename string) (*Config, error) {
 		return nil, fmt.Errorf("Error parsing config file.:%s", err.Error())
 	}
 	return config, nil
+}
+
+func configValidations() error {
+	// Check valid CacheEngine, BindIP, etc.
+	return nil
 }

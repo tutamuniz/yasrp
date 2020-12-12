@@ -1,9 +1,14 @@
 package cache
 
+import "time"
+
+const maxAge = "15m"
+
+var CacheMaxAge, _ = time.ParseDuration(maxAge)
+
 type Cache interface {
 	InCache(string) bool
-	Get(string) ([]byte, error)
-	Put(string, []byte) error
-	PutTTL(string, []byte) error
+	Get(string) (*CacheEntry, error)
+	Put(string, *CacheEntry) error
 	StartEngine()
 }
