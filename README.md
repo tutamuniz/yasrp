@@ -17,10 +17,10 @@ Created the CacheEngine model to allow many cache implementations like memory, f
 - Dummy Cache implemented. This Cache Engine, does nothing. Work as example.
 
 Known issues:
-    - Doesn't work(yet) with SSL/TLS targets;
-    - Can't handle chunked body;
-    - Doesn't have any timeout(Read/Write/Connect);
-    - Memory cache doesn't have entries limit. This could be dangerous.;
-    - Need to make the content-type filter to work.(cache only some types);
-    - There some issues when doing reverse proxy. Maybe improving in same way as **ProxyPass** and **ProxyPassReverse** on Apache httpd;
+- Doesn't work(yet) with SSL/TLS targets;
+- Can't handle chunked body;
+- Doesn't have any timeout(Read/Write/Connect);
+- Memory cache doesn't have entries limit. This could be dangerous.;
+- Need to make the content-type filter to work.(cache only some types);
+- There some issues when doing reverse proxy. Maybe improving in same way as **ProxyPass** and **ProxyPassReverse** on Apache httpd;
 
