@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+
 	configFile := flag.String("config", "config.json", "Configuration File.(JSON format)")
 	flag.Parse()
 
